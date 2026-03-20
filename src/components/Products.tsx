@@ -9,6 +9,8 @@ export function Products() {
   const [categories, setCategories] = useState<Category[]>([])
   const [form, setForm] = useState<ProductFormState>(initialForm)
   const [loading, setLoading] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -41,24 +43,66 @@ export function Products() {
     [categories],
   )
 
+  const resetForm = () => {
+    setForm(initialForm)
+    setEditingId(null)
+  }
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
     try {
-      await productApi.create({
+      const payload = {
         name: form.name.trim(),
         price: Number.parseFloat(form.price),
         categoryId: Number.parseInt(form.categoryId, 10),
-      })
-      setForm(initialForm)
+      }
+
+      if (editingId === null) {
+        await productApi.create(payload)
+      } else {
+        await productApi.update(editingId, payload)
+      }
+
+      resetForm()
       await fetchProducts()
     } catch (err) {
-      console.error('Error creating product:', err)
-      setError('No se pudo guardar el producto.')
+      console.error('Error saving product:', err)
+      setError(editingId === null ? 'No se pudo guardar el producto.' : 'No se pudo actualizar el producto.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleEdit = (product: Product) => {
+    setEditingId(product.productId)
+    setForm({
+      name: product.name,
+      price: product.price.toString(),
+      categoryId: product.categoryId.toString(),
+    })
+    setError(null)
+  }
+
+  const handleDelete = async (productId: number) => {
+    setDeletingId(productId)
+    setError(null)
+
+    try {
+      await productApi.delete(productId)
+
+      if (editingId === productId) {
+        resetForm()
+      }
+
+      await fetchProducts()
+    } catch (err) {
+      console.error('Error deleting product:', err)
+      setError('No se pudo eliminar el producto.')
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -76,7 +120,7 @@ export function Products() {
       <section className="form-section panel-card">
         <div className="section-heading">
           <span className="section-chip">Inventario</span>
-          <h2>Agregar producto</h2>
+          <h2>{editingId === null ? 'Agregar producto' : 'Editar producto'}</h2>
           <p>Registra artículos y asígnalos a una categoría existente.</p>
         </div>
 
@@ -129,9 +173,17 @@ export function Products() {
 
           {error ? <p className="feedback error">{error}</p> : null}
 
-          <button type="submit" disabled={loading} className="submit-btn">
-            {loading ? 'Guardando...' : 'Guardar producto'}
-          </button>
+          <div className="action-row">
+            <button type="submit" disabled={loading} className="submit-btn">
+              {loading ? 'Guardando...' : editingId === null ? 'Guardar producto' : 'Actualizar producto'}
+            </button>
+
+            {editingId !== null ? (
+              <button type="button" className="secondary-btn" onClick={resetForm} disabled={loading}>
+                Cancelar edición
+              </button>
+            ) : null}
+          </div>
         </form>
       </section>
 
@@ -155,6 +207,24 @@ export function Products() {
               <p>
                 <strong>Categoría:</strong> {product.categoryName ?? getCategoryName(product.categoryId)}
               </p>
+              <div className="card-actions">
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  onClick={() => handleEdit(product)}
+                  disabled={loading || deletingId === product.productId}
+                >
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  className="danger-btn"
+                  onClick={() => void handleDelete(product.productId)}
+                  disabled={deletingId === product.productId}
+                >
+                  {deletingId === product.productId ? 'Eliminando...' : 'Eliminar'}
+                </button>
+              </div>
             </article>
           ))}
         </div>

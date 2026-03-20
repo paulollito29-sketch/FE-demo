@@ -14,6 +14,8 @@ export function Sales() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [form, setForm] = useState<SaleFormState>(initialForm)
   const [loading, setLoading] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -46,6 +48,11 @@ export function Sales() {
     [customers],
   )
 
+  const resetForm = () => {
+    setForm(initialForm)
+    setEditingId(null)
+  }
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
@@ -54,22 +61,58 @@ export function Sales() {
     try {
       const subTotal = Number.parseFloat(form.subTotal)
       const tax = Number.parseFloat(form.tax)
-
-      await saleApi.create({
+      const payload = {
         customerId: Number.parseInt(form.customerId, 10),
         description: form.description.trim(),
         subTotal,
         tax,
         total: subTotal + tax,
-      })
+      }
 
-      setForm(initialForm)
+      if (editingId === null) {
+        await saleApi.create(payload)
+      } else {
+        await saleApi.update(editingId, payload)
+      }
+
+      resetForm()
       await fetchSales()
     } catch (err) {
-      console.error('Error creating sale:', err)
-      setError('No se pudo registrar la venta.')
+      console.error('Error saving sale:', err)
+      setError(editingId === null ? 'No se pudo registrar la venta.' : 'No se pudo actualizar la venta.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleEdit = (sale: Sale) => {
+    setEditingId(sale.saleId)
+    setForm({
+      customerId: sale.customerId?.toString() ?? '',
+      description: sale.description ?? '',
+      subTotal: sale.subTotal.toString(),
+      tax: sale.tax.toString(),
+    })
+    setError(null)
+  }
+
+  const handleDelete = async (saleId: number) => {
+    setDeletingId(saleId)
+    setError(null)
+
+    try {
+      await saleApi.delete(saleId)
+
+      if (editingId === saleId) {
+        resetForm()
+      }
+
+      await fetchSales()
+    } catch (err) {
+      console.error('Error deleting sale:', err)
+      setError('No se pudo eliminar la venta.')
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -97,7 +140,7 @@ export function Sales() {
       <section className="form-section panel-card">
         <div className="section-heading">
           <span className="section-chip">Ventas</span>
-          <h2>Registrar venta</h2>
+          <h2>{editingId === null ? 'Registrar venta' : 'Editar venta'}</h2>
           <p>Asocia una venta a un cliente y calcula el total automáticamente.</p>
         </div>
 
@@ -176,9 +219,17 @@ export function Sales() {
 
           {error ? <p className="feedback error">{error}</p> : null}
 
-          <button type="submit" disabled={loading} className="submit-btn">
-            {loading ? 'Registrando...' : 'Registrar venta'}
-          </button>
+          <div className="action-row">
+            <button type="submit" disabled={loading} className="submit-btn">
+              {loading ? 'Guardando...' : editingId === null ? 'Registrar venta' : 'Actualizar venta'}
+            </button>
+
+            {editingId !== null ? (
+              <button type="button" className="secondary-btn" onClick={resetForm} disabled={loading}>
+                Cancelar edición
+              </button>
+            ) : null}
+          </div>
         </form>
       </section>
 
@@ -207,6 +258,24 @@ export function Sales() {
               </p>
               {sale.description ? <p className="description">{sale.description}</p> : null}
               {sale.saleDate ? <p className="muted-text">Fecha: {sale.saleDate}</p> : null}
+              <div className="card-actions">
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  onClick={() => handleEdit(sale)}
+                  disabled={loading || deletingId === sale.saleId}
+                >
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  className="danger-btn"
+                  onClick={() => void handleDelete(sale.saleId)}
+                  disabled={deletingId === sale.saleId}
+                >
+                  {deletingId === sale.saleId ? 'Eliminando...' : 'Eliminar'}
+                </button>
+              </div>
             </article>
           ))}
         </div>

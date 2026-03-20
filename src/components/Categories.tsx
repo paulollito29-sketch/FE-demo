@@ -8,6 +8,8 @@ export function Categories() {
   const [categories, setCategories] = useState<Category[]>([])
   const [form, setForm] = useState<CategoryFormState>(initialForm)
   const [loading, setLoading] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -25,20 +27,58 @@ export function Categories() {
     }
   }
 
+  const resetForm = () => {
+    setForm(initialForm)
+    setEditingId(null)
+  }
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
     try {
-      await categoryApi.create({ name: form.name.trim() })
-      setForm(initialForm)
+      const payload = { name: form.name.trim() }
+
+      if (editingId === null) {
+        await categoryApi.create(payload)
+      } else {
+        await categoryApi.update(editingId, payload)
+      }
+
+      resetForm()
       await fetchCategories()
     } catch (err) {
-      console.error('Error creating category:', err)
-      setError('No se pudo guardar la categoría.')
+      console.error('Error saving category:', err)
+      setError(editingId === null ? 'No se pudo guardar la categoría.' : 'No se pudo actualizar la categoría.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleEdit = (category: Category) => {
+    setEditingId(category.categoryId)
+    setForm({ name: category.name })
+    setError(null)
+  }
+
+  const handleDelete = async (categoryId: number) => {
+    setDeletingId(categoryId)
+    setError(null)
+
+    try {
+      await categoryApi.delete(categoryId)
+
+      if (editingId === categoryId) {
+        resetForm()
+      }
+
+      await fetchCategories()
+    } catch (err) {
+      console.error('Error deleting category:', err)
+      setError('No se pudo eliminar la categoría.')
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -52,7 +92,7 @@ export function Categories() {
       <section className="form-section panel-card">
         <div className="section-heading">
           <span className="section-chip">Catálogo</span>
-          <h2>Agregar categoría</h2>
+          <h2>{editingId === null ? 'Agregar categoría' : 'Editar categoría'}</h2>
           <p>Crea agrupadores para organizar mejor los productos.</p>
         </div>
 
@@ -72,9 +112,17 @@ export function Categories() {
 
           {error ? <p className="feedback error">{error}</p> : null}
 
-          <button type="submit" disabled={loading} className="submit-btn">
-            {loading ? 'Guardando...' : 'Guardar categoría'}
-          </button>
+          <div className="action-row">
+            <button type="submit" disabled={loading} className="submit-btn">
+              {loading ? 'Guardando...' : editingId === null ? 'Guardar categoría' : 'Actualizar categoría'}
+            </button>
+
+            {editingId !== null ? (
+              <button type="button" className="secondary-btn" onClick={resetForm} disabled={loading}>
+                Cancelar edición
+              </button>
+            ) : null}
+          </div>
         </form>
       </section>
 
@@ -97,6 +145,24 @@ export function Categories() {
               <p>
                 <strong>Productos asociados:</strong> {category.products?.length ?? 0}
               </p>
+              <div className="card-actions">
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  onClick={() => handleEdit(category)}
+                  disabled={loading || deletingId === category.categoryId}
+                >
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  className="danger-btn"
+                  onClick={() => void handleDelete(category.categoryId)}
+                  disabled={deletingId === category.categoryId}
+                >
+                  {deletingId === category.categoryId ? 'Eliminando...' : 'Eliminar'}
+                </button>
+              </div>
             </article>
           ))}
         </div>
