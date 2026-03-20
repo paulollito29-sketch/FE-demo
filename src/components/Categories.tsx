@@ -67,7 +67,13 @@ export function Categories() {
     setError(null)
 
     try {
-      await categoryApi.delete(categoryId)
+      const response = await categoryApi.delete(categoryId)
+      
+      if(response.message) {
+        setError(response.message)
+        return;
+      }
+      
 
       if (editingId === categoryId) {
         resetForm()

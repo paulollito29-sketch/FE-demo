@@ -77,7 +77,7 @@ export function Products() {
   }
 
   const handleEdit = (product: Product) => {
-    setEditingId(product.productId)
+    setEditingId(product.id)
     setForm({
       name: product.name,
       price: product.price.toString(),
@@ -198,10 +198,10 @@ export function Products() {
 
         <div className="products-grid">
           {products.map(product => (
-            <article key={product.productId} className="product-card product-card--accent">
+            <article key={product.id} className="product-card product-card--accent">
               <div className="product-card__header">
                 <h3>{product.name}</h3>
-                <span className="pill">#{product.productId}</span>
+                <span className="pill">#{product.id}</span>
               </div>
               <p className="price">${product.price.toFixed(2)}</p>
               <p>
@@ -212,17 +212,17 @@ export function Products() {
                   type="button"
                   className="secondary-btn"
                   onClick={() => handleEdit(product)}
-                  disabled={loading || deletingId === product.productId}
+                  disabled={loading || deletingId === product.id}
                 >
                   Editar
                 </button>
                 <button
                   type="button"
                   className="danger-btn"
-                  onClick={() => void handleDelete(product.productId)}
-                  disabled={deletingId === product.productId}
+                  onClick={() => void handleDelete(product.id)}
+                  disabled={deletingId === product.id}
                 >
-                  {deletingId === product.productId ? 'Eliminando...' : 'Eliminar'}
+                  {deletingId === product.id ? 'Eliminando...' : 'Eliminar'}
                 </button>
               </div>
             </article>

@@ -1,5 +1,5 @@
 export interface Product {
-  productId: number
+  id: number
   name: string
   price: number
   categoryId: number
@@ -24,7 +24,7 @@ export interface Sale {
   customerName?: string
   description?: string
   subTotal: number
-  tax: number
+  tax: number 
   total: number
   saleDate?: string
 }

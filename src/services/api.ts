@@ -17,16 +17,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(`Request failed with status ${response.status}`)
   }
 
-  if (response.status === 204) {
-    return undefined as T
-  }
-
-  const contentType = response.headers.get('content-type') ?? ''
-
-  if (!contentType.includes('application/json')) {
-    return undefined as T
-  }
-
   return response.json() as Promise<T>
 }
 
@@ -37,15 +27,6 @@ export const productApi = {
       method: 'POST',
       body: JSON.stringify(data satisfies JsonBody),
     }),
-  update: (productId: number, data: Omit<Product, 'productId' | 'categoryName'>) =>
-    request<Product>(`/products/${productId}`, {
-      method: 'PUT',
-      body: JSON.stringify(data satisfies JsonBody),
-    }),
-  delete: (productId: number) =>
-    request<void>(`/products/${productId}`, {
-      method: 'DELETE',
-    }),
 }
 
 export const categoryApi = {
@@ -55,15 +36,16 @@ export const categoryApi = {
       method: 'POST',
       body: JSON.stringify(data satisfies JsonBody),
     }),
-  update: (categoryId: number, data: Pick<Category, 'name'>) =>
-    request<Category>(`/categories/${categoryId}`, {
-      method: 'PUT',
-      body: JSON.stringify(data satisfies JsonBody),
-    }),
-  delete: (categoryId: number) =>
-    request<void>(`/categories/${categoryId}`, {
-      method: 'DELETE',
-    }),
+    delete: async (categoryId: number) => {
+      const response = await fetch(`${API_BASE}/categories/${categoryId}`, {
+        method: 'DELETE',
+      })
+            
+      if (response.status == 204) {
+        return true;
+      }      
+      return await response.json();
+    }
 }
 
 export const customerApi = {
@@ -72,15 +54,6 @@ export const customerApi = {
     request<Customer>('/customers', {
       method: 'POST',
       body: JSON.stringify(data satisfies JsonBody),
-    }),
-  update: (customerId: number, data: Omit<Customer, 'customerId'>) =>
-    request<Customer>(`/customers/${customerId}`, {
-      method: 'PUT',
-      body: JSON.stringify(data satisfies JsonBody),
-    }),
-  delete: (customerId: number) =>
-    request<void>(`/customers/${customerId}`, {
-      method: 'DELETE',
     }),
 }
 
@@ -91,15 +64,7 @@ export const saleApi = {
       method: 'POST',
       body: JSON.stringify(data satisfies JsonBody),
     }),
-  update: (saleId: number, data: Omit<Sale, 'saleId' | 'customerName' | 'saleDate'>) =>
-    request<Sale>(`/sales/${saleId}`, {
-      method: 'PUT',
-      body: JSON.stringify(data satisfies JsonBody),
-    }),
-  delete: (saleId: number) =>
-    request<void>(`/sales/${saleId}`, {
-      method: 'DELETE',
-    }),
+  
 }
 
 export const consultApi = {
