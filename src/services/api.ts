@@ -1,65 +1,64 @@
-const API_BASE = '/api';
+import type { Category, Customer, Product, Sale, SalesFilteredDto } from '../types/models'
 
-// Products
+const API_BASE = '/api'
+
+type JsonBody = Record<string, unknown>
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(init?.headers ?? {}),
+    },
+    ...init,
+  })
+
+  if (!response.ok) {
+    throw new Error(`Request failed with status ${response.status}`)
+  }
+
+  return response.json() as Promise<T>
+}
+
 export const productApi = {
-  getAll: async () => {
-    const res = await fetch(`${API_BASE}/products`);
-    return res.json();
-  },
-  create: async (data: any) => {
-    const res = await fetch(`${API_BASE}/products`, {
+  getAll: () => request<Product[]>('/products'),
+  create: (data: Omit<Product, 'productId' | 'categoryName'>) =>
+    request<Product>('/products', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return res.json();
-  },
-};
+      body: JSON.stringify(data satisfies JsonBody),
+    }),
+}
 
-// Categories
 export const categoryApi = {
-  getAll: async () => {
-    const res = await fetch(`${API_BASE}/categories`);
-    return res.json();
-  },
-  create: async (data: any) => {
-    const res = await fetch(`${API_BASE}/categories`, {
+  getAll: () => request<Category[]>('/categories'),
+  create: (data: Pick<Category, 'name'>) =>
+    request<Category>('/categories', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return res.json();
-  },
-};
+      body: JSON.stringify(data satisfies JsonBody),
+    }),
+}
 
-// Customers
 export const customerApi = {
-  getAll: async () => {
-    const res = await fetch(`${API_BASE}/customers`);
-    return res.json();
-  },
-  create: async (data: any) => {
-    const res = await fetch(`${API_BASE}/customers`, {
+  getAll: () => request<Customer[]>('/customers'),
+  create: (data: Omit<Customer, 'customerId'>) =>
+    request<Customer>('/customers', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return res.json();
-  },
-};
+      body: JSON.stringify(data satisfies JsonBody),
+    }),
+}
 
-// Sales
 export const saleApi = {
-  getAll: async () => {
-    const res = await fetch(`${API_BASE}/sales`);
-    return res.json();
-  },
-  create: async (data: any) => {
-    const res = await fetch(`${API_BASE}/sales`, {
+  getAll: () => request<Sale[]>('/sales'),
+  create: (data: Omit<Sale, 'saleId' | 'customerName' | 'saleDate'>) =>
+    request<Sale>('/sales', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return res.json();
+      body: JSON.stringify(data satisfies JsonBody),
+    }),
+}
+
+export const consultApi = {
+  getSalesBetweenDates: (startDate: string, endDate: string) => {
+    const params = new URLSearchParams({ startDate, endDate })
+    return request<SalesFilteredDto>(`/consult/sales-between-dates?${params.toString()}`)
   },
-};
+}
