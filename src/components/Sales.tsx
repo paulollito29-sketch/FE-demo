@@ -1,23 +1,33 @@
-import { useState, useEffect } from 'react'
-import { saleApi, customerApi } from '../services/api'
+import { useEffect, useMemo, useState } from 'react'
+import { customerApi, saleApi } from '../services/api'
+import type { Customer, Sale, SaleFormState } from '../types/models'
+
+const initialForm: SaleFormState = {
+  customerId: '',
+  description: '',
+  subTotal: '',
+  tax: '',
+}
 
 export function Sales() {
-  const [sales, setSales] = useState([])
-  const [customers, setCustomers] = useState([])
-  const [form, setForm] = useState({ customerId: '', description: '', subTotal: '', tax: '' })
+  const [sales, setSales] = useState<Sale[]>([])
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [form, setForm] = useState<SaleFormState>(initialForm)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchSales()
-    fetchCustomers()
+    void Promise.all([fetchSales(), fetchCustomers()])
   }, [])
 
   const fetchSales = async () => {
     try {
+      setError(null)
       const data = await saleApi.getAll()
       setSales(data)
     } catch (err) {
       console.error('Error fetching sales:', err)
+      setError('No se pudieron cargar las ventas.')
     }
   }
 
@@ -27,47 +37,73 @@ export function Sales() {
       setCustomers(data)
     } catch (err) {
       console.error('Error fetching customers:', err)
+      setError('No se pudieron cargar los clientes para registrar ventas.')
     }
   }
 
-  const handleSubmit = async (e) => {
+  const customerLookup = useMemo(
+    () => new Map(customers.map(customer => [customer.customerId, customer.name])),
+    [customers],
+  )
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
+    setError(null)
+
     try {
-      const subTotal = parseFloat(form.subTotal)
-      const tax = parseFloat(form.tax)
+      const subTotal = Number.parseFloat(form.subTotal)
+      const tax = Number.parseFloat(form.tax)
+
       await saleApi.create({
-        customerId: parseInt(form.customerId),
-        description: form.description,
+        customerId: Number.parseInt(form.customerId, 10),
+        description: form.description.trim(),
         subTotal,
         tax,
         total: subTotal + tax,
       })
-      setForm({ customerId: '', description: '', subTotal: '', tax: '' })
-      fetchSales()
+
+      setForm(initialForm)
+      await fetchSales()
     } catch (err) {
-      console.error('Error:', err)
+      console.error('Error creating sale:', err)
+      setError('No se pudo registrar la venta.')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value })
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value } = e.target
+    setForm(current => ({ ...current, [name]: value }))
   }
 
-  const getCustomerName = (customerId) => {
-    const customer = customers.find(c => c.customerId === customerId)
-    return customer ? customer.name : 'Sin cliente'
+  const getCustomerName = (sale: Sale) => {
+    if (sale.customerName) {
+      return sale.customerName
+    }
+
+    if (sale.customerId) {
+      return customerLookup.get(sale.customerId) ?? 'Sin cliente'
+    }
+
+    return 'Sin cliente'
   }
 
   return (
     <div className="entity-container">
-      <section className="form-section">
-        <h2>Registrar Venta</h2>
-        <form onSubmit={handleSubmit} className="product-form">
+      <section className="form-section panel-card">
+        <div className="section-heading">
+          <span className="section-chip">Ventas</span>
+          <h2>Registrar venta</h2>
+          <p>Asocia una venta a un cliente y calcula el total automáticamente.</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="entity-form">
           <div className="form-group">
-            <label htmlFor="customerId">Cliente:</label>
+            <label htmlFor="customerId">Cliente</label>
             <select
               id="customerId"
               name="customerId"
@@ -83,57 +119,95 @@ export function Sales() {
               ))}
             </select>
           </div>
+
           <div className="form-group">
-            <label htmlFor="description">Descripción:</label>
+            <label htmlFor="description">Descripción</label>
             <input
               type="text"
               id="description"
               name="description"
               value={form.description}
               onChange={handleChange}
+              placeholder="Ej. Combo de oficina"
             />
           </div>
-          <div className="form-group">
-            <label htmlFor="subTotal">Subtotal:</label>
-            <input
-              type="number"
-              id="subTotal"
-              name="subTotal"
-              value={form.subTotal}
-              onChange={handleChange}
-              step="0.01"
-              required
-            />
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="subTotal">Subtotal</label>
+              <input
+                type="number"
+                id="subTotal"
+                name="subTotal"
+                value={form.subTotal}
+                onChange={handleChange}
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="tax">Impuesto</label>
+              <input
+                type="number"
+                id="tax"
+                name="tax"
+                value={form.tax}
+                onChange={handleChange}
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                required
+              />
+            </div>
           </div>
-          <div className="form-group">
-            <label htmlFor="tax">Impuesto:</label>
-            <input
-              type="number"
-              id="tax"
-              name="tax"
-              value={form.tax}
-              onChange={handleChange}
-              step="0.01"
-              required
-            />
+
+          <div className="summary-box">
+            <span>Total estimado</span>
+            <strong>
+              ${(
+                (Number.parseFloat(form.subTotal) || 0) +
+                (Number.parseFloat(form.tax) || 0)
+              ).toFixed(2)}
+            </strong>
           </div>
+
+          {error ? <p className="feedback error">{error}</p> : null}
+
           <button type="submit" disabled={loading} className="submit-btn">
-            {loading ? 'Registrando...' : 'Registrar Venta'}
+            {loading ? 'Registrando...' : 'Registrar venta'}
           </button>
         </form>
       </section>
 
-      <section className="products-section">
-        <h2>Lista de Ventas ({sales.length})</h2>
+      <section className="products-section panel-card">
+        <div className="section-heading section-heading-inline">
+          <div>
+            <span className="section-chip">Historial</span>
+            <h2>Ventas registradas</h2>
+          </div>
+          <strong className="stat-badge">{sales.length}</strong>
+        </div>
+
         <div className="products-grid">
           {sales.map(sale => (
-            <div key={sale.saleId} className="product-card">
-              <h3>{sale.customerName}</h3>
-              <p><strong>Total:</strong> ${sale.total}</p>
-              <p>Subtotal: ${sale.subTotal} | Impuesto: ${sale.tax}</p>
-              <p className="description">{sale.description}</p>
-              <p className="id">ID: {sale.saleId}</p>
-            </div>
+            <article key={sale.saleId} className="product-card product-card--success">
+              <div className="product-card__header">
+                <h3>{getCustomerName(sale)}</h3>
+                <span className="pill">#{sale.saleId}</span>
+              </div>
+              <p className="price">${sale.total.toFixed(2)}</p>
+              <p>
+                <strong>Subtotal:</strong> ${sale.subTotal.toFixed(2)}
+              </p>
+              <p>
+                <strong>Impuesto:</strong> ${sale.tax.toFixed(2)}
+              </p>
+              {sale.description ? <p className="description">{sale.description}</p> : null}
+              {sale.saleDate ? <p className="muted-text">Fecha: {sale.saleDate}</p> : null}
+            </article>
           ))}
         </div>
       </section>
