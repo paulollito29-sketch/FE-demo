@@ -1,12 +1,52 @@
-# Sistema de Gestión Frontend
+# Sales Admin (React + Vite)
 
-Aplicación frontend construida con React, TypeScript y Vite para administrar:
+Refactor completo de la UI para un flujo administrativo con **navbar superior + sidebar hamburguesa colapsable + contenido dinámico**.
 
-- Productos
-- Categorías
-- Clientes
-- Ventas
-- Consultas de ventas por rango de fechas
+## Flujo principal implementado
+
+1. Entrar a **Ventas**.
+2. Ver listado de ventas.
+3. Seleccionar una venta.
+4. Ir a **Detalle de Venta**.
+5. Ver, crear, editar y eliminar productos vendidos en esa venta.
+
+## Estructura de carpetas
+
+```text
+src/
+  components/
+    sale-details/
+      SaleDetailForm.tsx
+      SaleDetailList.tsx
+  layout/
+    Navbar.tsx
+    Sidebar.tsx
+  pages/
+    CategoriesPage.tsx
+    DashboardPage.tsx
+    ProductsPage.tsx
+    SaleDetailsPage.tsx
+    SalesPage.tsx
+  services/
+    api.ts
+  types/
+    models.ts
+  App.tsx
+  App.css
+  index.css
+  main.tsx
+```
+
+## Endpoints backend usados
+
+- `GET /api/sales`
+- `GET /api/products`
+- `GET /api/categories`
+- `GET /api/sale-details?saleId={id}`
+- `GET /api/sale-details/{id}`
+- `POST /api/sale-details`
+- `PUT /api/sale-details/{id}`
+- `DELETE /api/sale-details/{id}`
 
 ## Scripts
 
@@ -17,18 +57,18 @@ npm run build
 npm run lint
 ```
 
-## Backend esperado
+## Ejemplo de consumo con Axios (referencia)
 
-En desarrollo, Vite redirige las rutas `/api/*` al backend disponible en `http://localhost:8081`.
+> En este entorno no fue posible instalar paquetes externos por política del registry, por eso el proyecto usa `fetch` tipado en `src/services/api.ts`.
+> Si en tu entorno puedes instalar Axios, este sería el equivalente:
 
-Endpoints consumidos por la app:
+```ts
+import axios from 'axios'
 
-- `GET /api/products`
-- `POST /api/products`
-- `GET /api/categories`
-- `POST /api/categories`
-- `GET /api/customers`
-- `POST /api/customers`
-- `GET /api/sales`
-- `POST /api/sales`
-- `GET /api/consult/sales-between-dates?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD`
+const api = axios.create({ baseURL: '/api' })
+
+export async function getSaleDetails(saleId: number) {
+  const { data } = await api.get('/sale-details', { params: { saleId } })
+  return data
+}
+```
