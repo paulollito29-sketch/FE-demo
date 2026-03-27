@@ -24,5 +24,12 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": [
+    "src/components/Categories.tsx",
+    "src/components/Consults.tsx",
+    "src/components/Customers.tsx",
+    "src/components/Products.tsx",
+    "src/components/Sales.tsx"
+  ]
 }

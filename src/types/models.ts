@@ -1,5 +1,5 @@
 export interface Product {
-  id: number
+  productId: number
   name: string
   price: number
   categoryId: number
@@ -24,43 +24,30 @@ export interface Sale {
   customerName?: string
   description?: string
   subTotal: number
-  tax: number 
+  tax: number
   total: number
   saleDate?: string
 }
 
-export interface ProductFormState {
-  name: string
-  price: string
-  categoryId: string
+export interface SaleDetail {
+  saleDetailId: number
+  saleId: number
+  productId: number
+  productName?: string
+  quantity: number
+  price: number
+  lineTotal?: number
 }
 
-export interface CategoryFormState {
-  name: string
+export interface CreateSaleDetailDto {
+  saleId: number
+  productId: number
+  quantity: number
+  price?: number
 }
 
-export interface CustomerFormState {
-  name: string
-  dni: string
-}
-
-export interface SaleFormState {
-  customerId: string
-  description: string
-  subTotal: string
-  tax: string
-}
-
-export interface SaleBetweenDatesFormState {
-  startDate: string
-  endDate: string
-}
-
-export interface SalesFilteredDto {
-  sales?: Sale[]
-  total?: number
-  subTotal?: number
-  tax?: number
-  count?: number
-  [key: string]: unknown
+export interface UpdateSaleDetailDto {
+  productId: number
+  quantity: number
+  price?: number
 }

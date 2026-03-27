@@ -1,8 +1,13 @@
-import type { Category, Customer, Product, Sale, SalesFilteredDto } from '../types/models'
+import type {
+  Category,
+  CreateSaleDetailDto,
+  Product,
+  Sale,
+  SaleDetail,
+  UpdateSaleDetailDto,
+} from '../types/models'
 
 const API_BASE = '/api'
-
-type JsonBody = Record<string, unknown>
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -14,78 +19,62 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   })
 
   if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}`)
+    let message = `Request failed with status ${response.status}`
+
+    try {
+      const payload = (await response.json()) as { message?: string }
+      if (payload?.message) {
+        message = payload.message
+      }
+    } catch {
+      // Keep fallback status message if no JSON body exists.
+    }
+
+    throw new Error(message)
+  }
+
+  if (response.status === 204) {
+    return undefined as T
   }
 
   return response.json() as Promise<T>
 }
 
+export const saleApi = {
+  getAll: () => request<Sale[]>('/sales'),
+}
+
 export const productApi = {
   getAll: () => request<Product[]>('/products'),
-  create: (data: Omit<Product, 'productId' | 'categoryName'>) =>
-    request<Product>('/products', {
-      method: 'POST',
-      body: JSON.stringify(data satisfies JsonBody),
-    }),
 }
 
 export const categoryApi = {
   getAll: () => request<Category[]>('/categories'),
-  create: (data: Pick<Category, 'name'>) =>
-    request<Category>('/categories', {
-      method: 'POST',
-      body: JSON.stringify(data satisfies JsonBody),
-    }),
-    delete: async (categoryId: number) => {
-      const response = await fetch(`${API_BASE}/categories/${categoryId}`, {
-        method: 'DELETE',
-      })
-            
-      if (response.status == 204) {
-        return true;
-      }      
-      return await response.json();
-    }
 }
 
-export const customerApi = {
-  getAll: () => request<Customer[]>('/customers'),
-  create: (data: Omit<Customer, 'customerId'>) =>
-    request<Customer>('/customers', {
+export const saleDetailApi = {
+  getBySaleId: (saleId: number) => request<SaleDetail[]>(`/sale-details?saleId=${saleId}`),
+  getById: (id: number) => request<SaleDetail>(`/sale-details/${id}`),
+  create: (payload: CreateSaleDetailDto) =>
+    request<SaleDetail>('/sale-details', {
       method: 'POST',
-      body: JSON.stringify(data satisfies JsonBody),
+      body: JSON.stringify(payload),
     }),
-}
-
-export const saleApi = {
-  getAll: () => request<Sale[]>('/sales'),
-  create: (data: Omit<Sale, 'saleId' | 'customerName' | 'saleDate'>) =>
-    request<Sale>('/sales', {
-      method: 'POST',
-      body: JSON.stringify(data satisfies JsonBody),
-    }),
-    update: (saleId: number, data: Omit<Sale, 'saleId' | 'customerName' | 'saleDate'>) =>
-    request<Sale>(`/sales/${saleId}`, {
+  update: (id: number, payload: UpdateSaleDetailDto) =>
+    request<SaleDetail>(`/sale-details/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(data satisfies JsonBody),
+      body: JSON.stringify(payload),
     }),
-    
-  delete: async (saleId: number) => {
-      const response = await fetch(`${API_BASE}/sales/${saleId}`, {
-        method: 'DELETE',
-      })
-            
-      if (response.status == 204) {
-        return true;
-      }      
-      return await response.json();
-    }
-  
+  delete: (id: number) =>
+    request<void>(`/sale-details/${id}`, {
+      method: 'DELETE',
+    }),
 }
 
-export const consultApi = {
-  getSalesBetweenDates: (startDate: string, endDate: string) => {
-    const params = new URLSearchParams({ startDate, endDate })
-    return request<SalesFilteredDto>(`/consult/sales-between-dates?${params.toString()}`)
-  },
+export function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) {
+    return error.message
+  }
+
+  return fallback
 }
