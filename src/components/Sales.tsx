@@ -187,7 +187,7 @@ export function Sales() {
                 step="0.01"
                 min="0"
                 placeholder="0.00"
-                required
+                readOnly
               />
             </div>
 
@@ -202,7 +202,7 @@ export function Sales() {
                 step="0.01"
                 min="0"
                 placeholder="0.00"
-                required
+                readOnly
               />
             </div>
           </div>

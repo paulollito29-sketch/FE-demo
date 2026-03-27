@@ -160,12 +160,12 @@ export function Consults() {
                       <h3>{sale.customerName ?? 'Venta'}</h3>
                       <span className="pill">#{sale.saleId}</span>
                     </div>
-                    <p className="price">${sale.total.toFixed(2)}</p>
+                    <p className="price">${sale.total}</p>
                     <p>
-                      <strong>Subtotal:</strong> ${sale.subTotal.toFixed(2)}
+                      <strong>Subtotal:</strong> ${sale.subTotal}
                     </p>
                     <p>
-                      <strong>Impuesto:</strong> ${sale.tax.toFixed(2)}
+                      <strong>Impuesto:</strong> ${sale.tax}
                     </p>
                     {sale.saleDate ? <p className="muted-text">Fecha: {sale.saleDate}</p> : null}
                     {sale.description ? <p className="description">{sale.description}</p> : null}

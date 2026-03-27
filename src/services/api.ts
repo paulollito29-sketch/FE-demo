@@ -64,6 +64,22 @@ export const saleApi = {
       method: 'POST',
       body: JSON.stringify(data satisfies JsonBody),
     }),
+    update: (saleId: number, data: Omit<Sale, 'saleId' | 'customerName' | 'saleDate'>) =>
+    request<Sale>(`/sales/${saleId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data satisfies JsonBody),
+    }),
+    
+  delete: async (saleId: number) => {
+      const response = await fetch(`${API_BASE}/sales/${saleId}`, {
+        method: 'DELETE',
+      })
+            
+      if (response.status == 204) {
+        return true;
+      }      
+      return await response.json();
+    }
   
 }
 
